@@ -1,0 +1,55 @@
+# Creating Heston model for random walk volatility assumption
+# using Pkg
+# Pkg.add("Random")
+# Pkg.add("Distributions")
+# Pkg.add("Statistics")
+# Pkg.add("LinearAlgebra")
+using Random, Distributions,Statistics, LinearAlgebra
+
+struct HestonParams
+    S::Float64 # Initial Spot Price
+    V0::Float64 # Initial Variance
+    r::Float64 # rf rate
+    k::Float64 # rate of mean reversion 
+    θ::Float64 # long term variance 
+    σ::Float64 # vol 
+    ρ::Float64 # correlation between stock and vol
+    T::Float64 # Time to maturity 
+    K::Float64 # Strike price
+end
+
+function heston_monte_carlo(params::HestonParams,n_steps::Int,n_sims::Int)
+    dt = params.T / n_steps
+    sqrt_dt = sqrt(dt)
+
+    final_prices = zeros(n_sims)
+
+    L = [1.0 0.0; params.p sqrt(1-params.p^2)]
+
+    Random.seed!(42)
+
+    for sim in 1:n_sims
+        S = params.S0
+        V = params.V0
+        
+        for step in 1:n_steps
+            Z = randn(2)
+            W = L * Z
+
+            V = max(V,0.0)
+            sqrt_V = sqrt(V)
+
+            dV = params.k * (params.Θ - V) * dt + params.σ * sqrt_V * sqrt_dt * W[2]
+
+            dS = params.r * S * dt + sqrt_V * S *sqrt_dt * W[1]
+            S = S + dS
+        end
+
+        final_prices[sim] = S
+    end
+
+    return final_prices
+end
+
+function heston_call_price(parms::HestonParams)
+    
